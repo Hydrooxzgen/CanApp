@@ -424,7 +424,7 @@ class App(tk.Tk):
                         ("prank", tr("  恶搞"))]),
             (tr("账户"), [("account", tr("  账户相关"))]),
             (tr("其他"), [("feedback", tr("  反馈问题")), ("changelog", tr("  更新日志")),
-                    ("about", tr("  关于"))]),
+                    ("about", tr("  关于")), ("dev", tr("  Dev 开发者工具"))]),
         ]
 
     PAGE_BUILDERS = {
@@ -454,6 +454,7 @@ class App(tk.Tk):
         "feedback": "_build_feedback_page",
         "changelog": "_build_changelog_page",
         "about": "_build_about_page",
+        "dev": "_build_dev_page",
     }
 
     def _register_pages(self):
@@ -1908,6 +1909,60 @@ class App(tk.Tk):
         else:
             self._set_text(self.changelog_log,
                            tr("无法找到 Update_Log.log 文件。\n你可以访问 GitHub：github.com/Hydrooxzgen/Projects\n下载 Update_Log.log 并放在 App.py 的目录下。"))
+
+    # --------------------------------------------------------
+    # 开发者工具（Dev 模块）
+    # --------------------------------------------------------
+    def _build_dev_page(self, frame):
+        self._header(frame, tr("开发者工具"), tr("Dev Tools - 测试与诊断"))
+
+        wrap = tk.Frame(frame, bg=COLORS["bg"])
+        wrap.pack(fill="both", expand=True, padx=24, pady=(0, 20))
+
+        # 警告横幅：不适用于普通用户
+        warn = tk.Frame(wrap, bg=COLORS["warning"])
+        warn.pack(fill="x", pady=(0, 16))
+        tk.Label(warn, text=tr("⚠ 此模块仅限开发者使用，不适用于普通用户！"),
+                 font=(FONT, 12, "bold"), bg=COLORS["warning"], fg="white").pack(anchor="w", padx=16, pady=12)
+
+        # 测试范围选择（与 dev/_test_all.py 的 A/B/C/D 段落一致）
+        card, body = self._card(wrap, tr("选择测试范围"), tr("对应 dev/_test_all.py 的 A/B/C/D 段落"))
+        card.pack(fill="x")
+
+        self.dev_test_var = tk.StringVar(value="ALL")
+        options = [
+            ("ALL", tr("全部测试（A+B+C+D）")),
+            ("A", tr("A. 静态检查（语法 / JSON / 键同步 / 残留）")),
+            ("B", tr("B. 单元测试（md5 / has_chinese / tr()）")),
+            ("C", tr("C. GUI 冒烟测试（26 页 × 三语）")),
+            ("D", tr("D. 人工测试清单")),
+        ]
+        for val, label in options:
+            tk.Radiobutton(body, text=label, value=val, variable=self.dev_test_var,
+                           font=(FONT, 10), bg=COLORS["card"], fg=COLORS["text"],
+                           activebackground=COLORS["card"], activeforeground=COLORS["text"],
+                           selectcolor=COLORS["card"], anchor="w").pack(fill="x", pady=3)
+
+        # 运行按钮 + 说明
+        btn_card, btn_body = self._card(wrap, tr("运行"), "")
+        btn_card.pack(fill="x", pady=(16, 0))
+        self._mk_btn(btn_body, tr("运行测试（打开控制台窗口）"),
+                     lambda: self._open_dev_console(self.dev_test_var.get()),
+                     "primary").pack(anchor="w")
+        tk.Label(btn_body, text=tr("将在新控制台窗口运行对应测试，输出实时显示；测试结束后窗口保持打开，可随时关闭。"),
+                 font=(FONT, 9), bg=COLORS["card"], fg=COLORS["text_light"],
+                 justify="left", wraplength=680).pack(anchor="w", pady=(8, 4))
+
+    def _open_dev_console(self, section):
+        """打开新控制台窗口运行 dev/_test_all.py 的指定段落，窗口保持打开。"""
+        test_all = os.path.join(BASE_DIR, "dev", "_test_all.py")
+        py = sys.executable or "python"
+        # cmd /k 保持窗口打开；CREATE_NEW_CONSOLE 弹出独立控制台窗口
+        cmd = f'cmd /k "cd /d {BASE_DIR} && {py} {test_all} {section}"'
+        try:
+            subprocess.Popen(cmd, creationflags=subprocess.CREATE_NEW_CONSOLE)
+        except OSError as e:
+            messagebox.showerror(tr("错误"), tr('启动控制台失败：{0}', e))
 
     # --------------------------------------------------------
     # 关于

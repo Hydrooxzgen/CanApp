@@ -45,7 +45,14 @@ _sp.Popen = lambda *a, **k: print("[subprocess]", str(a)[:60])
 _sp.run = lambda *a, **k: print("[subprocess.run]", str(a)[:60])
 
 import importlib
+print("尝试导入App...")
 import App
+
+# 打桩登录对话框：冒烟测试全自动，不弹出模态登录框。
+# 若不打桩，App 启动 300ms 后会自动弹 LoginDialog（wait_window + grab_set），
+# 模态锁定主窗口导致页面切换在后台进行、观感上"页面不自动切换"，
+# 且手动输入用户名密码会真实创建用户目录，污染 UserFiles/ 测试环境。
+App.App.open_login = lambda self: None
 
 print("模块导入成功")
 
@@ -53,6 +60,7 @@ app = App.App()
 app.update()
 
 errors = []
+print("登录对话框已打桩（不弹出），开始遍历页面...")
 
 
 def try_page(pid):

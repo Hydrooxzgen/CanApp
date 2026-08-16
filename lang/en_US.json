@@ -369,5 +369,20 @@
   "👋 欢迎使用": "👋 Welcome",
   "👤 当前用户：{0}": "👤 Current user: {0}",
   "👤 当前用户：游客": "👤 Current user: Guest",
-  "🖐 布": "🖐 Paper"
+  "🖐 布": "🖐 Paper",
+  "开发者工具": "Developer Tools",
+  "Dev Tools - 测试与诊断": "Dev Tools - Test & Diagnostics",
+  "⚠ 此模块仅限开发者使用，不适用于普通用户！": "⚠ For developers only. Not intended for regular users!",
+  "选择测试范围": "Select Test Scope",
+  "对应 dev/_test_all.py 的 A/B/C/D 段落": "Same as sections A/B/C/D of dev/_test_all.py",
+  "全部测试（A+B+C+D）": "All Tests (A+B+C+D)",
+  "A. 静态检查（语法 / JSON / 键同步 / 残留）": "A. Static Checks (syntax / JSON / key sync / leftovers)",
+  "B. 单元测试（md5 / has_chinese / tr()）": "B. Unit Tests (md5 / has_chinese / tr())",
+  "C. GUI 冒烟测试（26 页 × 三语）": "C. GUI Smoke Test (26 pages x 3 languages)",
+  "D. 人工测试清单": "D. Manual Test Checklist",
+  "运行": "Run",
+  "运行测试（打开控制台窗口）": "Run Tests (Open Console Window)",
+  "将在新控制台窗口运行对应测试，输出实时显示；测试结束后窗口保持打开，可随时关闭。": "The selected tests will run in a new console window with live output. The window stays open after finishing; close it anytime.",
+  "启动控制台失败：{0}": "Failed to launch console: {0}",
+  "  Dev 开发者工具": "  Dev Tools"
 }

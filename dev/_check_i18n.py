@@ -10,19 +10,32 @@
 用法：python dev/_check_i18n.py
 输入：App.py       输出：控制台检查报告
 """
+import ast
 import io
 import os
 import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 s = io.open(os.path.join(ROOT, 'App.py'), encoding='utf-8').read()
+tree = ast.parse(s)
 
-# 1. 残留含中文的 f-string
-f_res = [l for i, l in enumerate(s.splitlines(), 1)
-         if re.search(r'f["\']', l) and re.search(r'[\u4e00-\u9fff]', l)]
+
+def has_cn(text):
+    return any('\u4e00' <= ch <= '\u9fff' for ch in text)
+
+
+# 1. 残留含中文的 f-string（ast 精确判断：f-string 的字面量部分含中文才计入，
+#    避免 f"{total}" 与 tr("中文") 同行被正则误报）
+f_res = []
+for node in ast.walk(tree):
+    if isinstance(node, ast.JoinedStr):
+        lit = ''.join(v.value if isinstance(v, ast.Constant) and isinstance(v.value, str)
+                      else '' for v in node.values)
+        if has_cn(lit):
+            f_res.append((node.lineno, ast.get_source_segment(s, node)))
 print('残留含中文 f-string 行:', len(f_res))
-for l in f_res[:10]:
-    print('   ', l.strip()[:100])
+for ln, seg in f_res[:10]:
+    print(f'   行{ln}: {seg.strip()[:100]}')
 
 # 2. tr(tr( 双包
 print('tr(tr( 残留:', s.count('tr(tr('))

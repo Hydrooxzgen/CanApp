@@ -5,8 +5,8 @@
 # Github: github.com/Hydrooxzgen
 # ------------------------------------------------------------
 """
-App_GUI v1.0.0
-原版改为App_origin.py并不再更新
+App_GUI v1.0.0 Single Language Version
+此为单语言版本不再更新
 """
 
 import hashlib
@@ -17,6 +17,7 @@ import socket
 import subprocess
 import sys
 import threading
+
 
 
 # ------------------------------------------------------------
@@ -46,6 +47,7 @@ import tkinter as tk
 from datetime import datetime
 from tkinter import filedialog, messagebox, scrolledtext, simpledialog, ttk
 
+
 try:
     import requests
 except ImportError:
@@ -58,7 +60,7 @@ except ImportError:
 
 APP_SHORT_NAME = "NiceProgram"          # shorname for 侧边栏
 APP_TITLE = "NiceProgram App"           # fullname for title & about page
-APP_VERSION = "1.0.0 单语言简体中文版"                   # version here
+APP_VERSION = "1.0.0 单语言简体中文版-不再更新"                   # version here
 APP_AUTHOR = "Hydrooxygen"                 # Author: Hydrooxygen
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
