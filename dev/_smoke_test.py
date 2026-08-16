@@ -5,6 +5,11 @@
   1. 导入 App 模块并启动 App()
   2. 遍历全部 26 个页面逐个构建（打桩弹窗/危险操作，不真弹窗）
   3. 依次切换 zh_CN -> zh_TW -> en_US -> zh_CN，每轮重建全部页面并打印当前语言，全程无异常即通过
+  4. 测试窗口标题显示"测试中"，测试结束窗口保留不自动关闭，手动关闭后进程退出
+  5. 测试窗口可配置（文件顶部手动改，不询问用户）：
+     show_dev_tab              —— 是否显示 Dev 开发者工具页（默认 False）
+     home_message              —— 主页顶部提示条（默认"窗口仅为测试用"，设 None/"" 关闭）
+     allow_login_and_account_page —— 是否允许登录与账户页（默认 False）
 
 用法：python dev/_smoke_test.py
 输入：App.py       输出：控制台逐页 OK/FAIL 报告
@@ -23,6 +28,14 @@ print("项目根目录:", ROOT)
 print("Python 版本:", sys.version)
 print("Tkinter 版本:", __import__("tkinter").Tcl().eval('info patchlevel'))
 print("开始smoke test!!")
+
+# ============================================================
+# 测试窗口配置（永久手动更改，不询问用户）
+# ============================================================
+show_dev_tab = False                  # True=测试窗口导航中显示 Dev 开发者工具页
+home_message = "窗口仅为测试用"        # 主页顶部提示条；设为 None 或 "" 则不显示；设为其他字符串则显示该内容
+allow_login_and_account_page = False  # True=允许登录对话框与账户页（False=禁止登录、隐藏账户页与登录按钮）
+APP_TITLE = "测试结束前不要关闭这个窗口"                  # 测试窗口标题（手动改即可）
 # ---- 打桩：避免弹窗阻塞与危险操作 ----
 import tkinter.messagebox as _mb
 _mb.showinfo = lambda *a, **k: print("[msgbox-info]", str(a[1])[:40])
@@ -48,16 +61,60 @@ import importlib
 print("尝试导入App...")
 import App
 
-# 打桩登录对话框：冒烟测试全自动，不弹出模态登录框。
+# ---- 按配置调整 App 行为（monkey-patch，仅本进程生效） ----
+
+# 登录打桩：allow_login_and_account_page=False 时禁止登录，不弹模态登录框。
 # 若不打桩，App 启动 300ms 后会自动弹 LoginDialog（wait_window + grab_set），
 # 模态锁定主窗口导致页面切换在后台进行、观感上"页面不自动切换"，
 # 且手动输入用户名密码会真实创建用户目录，污染 UserFiles/ 测试环境。
-App.App.open_login = lambda self: None
+if not allow_login_and_account_page:
+    App.App.open_login = lambda self: None
+
+# 隐藏不需要的页面（show_dev_tab / allow_login_and_account_page 开关）
+# show_dev_tab=True 时强制打开 App 的 dev_enabled，使 Dev 页在测试窗口可见
+if show_dev_tab:
+    App.dev_enabled = True
+_hidden = set()
+if not show_dev_tab:
+    _hidden.add("dev")
+if not allow_login_and_account_page:
+    _hidden.add("account")
+if _hidden:
+    App.App.PAGE_BUILDERS = {k: v for k, v in App.App.PAGE_BUILDERS.items() if k not in _hidden}
+    _orig_nav_groups = App.App._nav_groups
+
+    def _nav_groups_filtered(self):
+        return [(g, [it for it in items if it[0] not in _hidden])
+                for g, items in _orig_nav_groups(self)]
+
+    App.App._nav_groups = _nav_groups_filtered
+
+# 主页顶部提示条（home_message 配置）
+if home_message:
+    _orig_build_home = App.App._build_home_page
+
+    def _build_home_with_msg(self, frame):
+        _orig_build_home(self, frame)
+        children = frame.winfo_children()
+        lbl = App.tk.Label(frame, text=home_message, font=(App.FONT, 10, "bold"),
+                           bg=App.COLORS["warning"], fg="white", anchor="w",
+                           padx=12, pady=6)
+        if children:
+            lbl.pack(fill="x", before=children[0])
+        else:
+            lbl.pack(fill="x")
+
+    App.App._build_home_page = _build_home_with_msg
 
 print("模块导入成功")
 
 app = App.App()
+app.title(APP_TITLE)
 app.update()
+
+# allow_login_and_account_page=False 时隐藏状态栏的"登录 / 切换账户"按钮
+if not allow_login_and_account_page:
+    app.btn_switch.pack_forget()
 
 errors = []
 print("登录对话框已打桩（不弹出），开始遍历页面...")
@@ -118,7 +175,8 @@ def run_tests():
     else:
         print("全部通过！")
 
-    app.destroy()
+    # 测试结束不关闭窗口：保留界面供开发者查看，手动关闭窗口后 mainloop 返回、进程自然退出。
+    print("测试完成，窗口保留（标题：测试中），查看后请手动关闭。")
 
 
 app.after(200, run_tests)

@@ -62,6 +62,15 @@ APP_TITLE = "NiceProgram App"           # fullname for title & about page
 APP_VERSION = "1.0.0"                   # version here
 APP_AUTHOR = "Hydrooxygen"                 # Author: Hydrooxygen
 
+# Dev 开发者工具开关：dev_enabled=True 或启动参数含 "dev" 时显示 Dev 页，否则隐藏。
+# 普通用户启动时无 dev 参数且变量为 False，因此看不到 Dev 工具。
+dev_enabled = False
+
+
+def _dev_visible():
+    """Dev 页是否可见：dev_enabled=True 或启动参数含 dev。"""
+    return dev_enabled or ("dev" in sys.argv)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 USERFILES_DIR = os.path.join(BASE_DIR, "UserFiles")
 TEMPLATE_DIR = os.path.join(USERFILES_DIR, "template")
@@ -409,7 +418,7 @@ class App(tk.Tk):
     # --------------------------------------------------------
     # 导航树（多语言：切换语言后重建）
     def _nav_groups(self):
-        return [
+        groups = [
             (tr("首页"), [("home", tr("  首页"))]),
             (tr("游戏娱乐"), [("guess", tr("  猜数字")), ("fist", tr("  石头剪刀布")), ("mind", tr("  读心术"))]),
             (tr("数学工具"), [("base", tr("  进制转换")), ("accuracy", tr("  计算正确率")),
@@ -424,8 +433,11 @@ class App(tk.Tk):
                         ("prank", tr("  恶搞"))]),
             (tr("账户"), [("account", tr("  账户相关"))]),
             (tr("其他"), [("feedback", tr("  反馈问题")), ("changelog", tr("  更新日志")),
-                    ("about", tr("  关于")), ("dev", tr("  Dev 开发者工具"))]),
+                    ("about", tr("  关于"))]),
         ]
+        if _dev_visible():
+            groups[-1][1].append(("dev", tr("  Dev 开发者工具")))
+        return groups
 
     PAGE_BUILDERS = {
         "home": "_build_home_page",
@@ -460,7 +472,10 @@ class App(tk.Tk):
     def _register_pages(self):
         self.page_frames = {}
         self.page_builders = {}
+        dev_on = _dev_visible()
         for pid, builder in self.PAGE_BUILDERS.items():
+            if pid == "dev" and not dev_on:
+                continue
             self.page_builders[pid] = getattr(self, builder)
         for group, items in self._nav_groups():
             gid = self.nav.insert("", "end", text=group, open=True)

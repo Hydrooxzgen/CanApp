@@ -8,7 +8,7 @@
 覆盖范围：
   A. 静态检查：语法编译 / JSON 合法性 / 关键文件 / [子进程]键同步 / [子进程]残留检查
   B. 单元测试：App 模块纯函数（md5_hex / has_chinese / tr() / _load_lang）
-  C. GUI 冒烟：[子进程] _smoke_test.py（26 页 × 三语循环）
+  C. GUI 冒烟：[子进程] _smoke_test.py（26 页 × 三语循环，窗口保留手动关闭）
   D. 人工清单：自动无法覆盖的项目（打印 + 写入报告）
 
 用法：
@@ -26,6 +26,8 @@ import os
 import py_compile
 import subprocess
 import sys
+import threading
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -175,8 +177,51 @@ def run_unit():
 # ============================================================
 def run_gui():
     print("\n===== C. GUI 冒烟测试 =====")
-    run_script("C", "26 页 × 三语循环 (调用 _smoke_test.py)", "_smoke_test.py",
-               lambda out: "全部通过！" in out, timeout=180)
+    # 冒烟测试窗口在测试结束后保留（不自动关闭），子进程不会退出，
+    # 因此不能用 subprocess.run 等待其结束（会超时），改为 Popen + 逐行读取输出：
+    # 检测到"全部通过！"即判 PASS，窗口留给开发者查看后手动关闭。
+    path = os.path.join(DEV_DIR, "_smoke_test.py")
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    proc = subprocess.Popen([sys.executable, "-u", path],
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            encoding="utf-8", errors="replace", env=env)
+    lines = []
+
+    def _reader():
+        try:
+            for line in proc.stdout:
+                lines.append(line)
+        except Exception:
+            pass
+
+    threading.Thread(target=_reader, daemon=True).start()
+
+    timeout = 180
+    ok = False
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if "全部通过！" in "".join(lines):
+            ok = True
+            break
+        if proc.poll() is not None:
+            break
+        time.sleep(0.2)
+
+    out = "".join(lines)
+    if ok:
+        detail = "全部通过！窗口保留，查看后请手动关闭"
+    elif time.time() >= deadline:
+        proc.kill()
+        detail = f"超时({timeout}s)"
+    else:
+        detail = f"exit={proc.poll()}，输出未见'全部通过！'"
+    RESULTS.append(("C", "26 页 × 三语循环 (调用 _smoke_test.py)", ok, detail))
+    print(f"  [{'PASS' if ok else 'FAIL'}] 26 页 × 三语循环 (调用 _smoke_test.py)  ({detail})")
+    shown = [ln for ln in out.splitlines() if ln.strip()]
+    shown = [ln for ln in shown if ("FAIL" in ln or "失败" in ln or "通过" in ln or "====" in ln)]
+    for ln in shown[-8:]:
+        print("        | " + ln.strip()[:100])
 
 
 # ============================================================

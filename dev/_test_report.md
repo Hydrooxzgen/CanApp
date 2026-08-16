@@ -1,6 +1,6 @@
 # 测试报告（_test_all.py · 编排器）
 
-- 生成时间: 2026-08-16 17:37:23
+- 生成时间: 2026-08-16 18:03:49
 - Python: 3.13.0
 - 项目根: h:\Projects\App
 
@@ -13,8 +13,17 @@
 | A | 关键文件存在 | ✅ PASS | 全部存在 |
 | A | i18n 键同步 (调用 _diff_lang.py) | ✅ PASS | exit=0 |
 | A | i18n 残留检查 (调用 _check_i18n.py) | ✅ PASS | exit=0 |
+| B | md5_hex 空串 | ✅ PASS | d41d8cd98f00b204e9800998ecf8427e |
+| B | md5_hex 与 hashlib 一致 | ✅ PASS | 与 hashlib 一致 |
+| B | has_chinese 判断 | ✅ PASS |  |
+| B | tr() 找不到键回退原文 | ✅ PASS | 回退原文 |
+| B | tr() 占位符格式化 | ✅ PASS | Ping 失败：timeout |
+| B | tr() 繁体占位符 | ✅ PASS | 👤 當前用戶：Alice |
+| B | 三语 _load_lang 加载 | ✅ PASS | {'zh_CN': 386, 'zh_TW': 386, 'en_US': 386} |
+| B | LANGUAGES 语言列表 | ✅ PASS | {'zh_CN': '中文', 'zh_TW': '繁體中文', 'en_US': 'English'} |
+| C | 26 页 × 三语循环 (调用 _smoke_test.py) | ✅ PASS | 全部通过！窗口保留，查看后请手动关闭 |
 
-**通过 5 / 5**
+**通过 14 / 14**
 
 ## 人工测试清单
 
