@@ -4,7 +4,9 @@ __pycache__/
 *.egg-info/
 
 # 用户数据（含密码文件、游戏记录等，不上传）
-UserFiles/
+UserFiles/*
+!UserFiles/template/
+!UserFiles/template/**
 
 # VS Code 本地配置
 .vscode/
