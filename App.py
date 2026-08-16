@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# ------------------------------------------------------------
+# Author: Hydrooxygen
+# Github: github.com/Hydrooxzgen
+# ------------------------------------------------------------
 """
-NiceProgram App —— 高级 GUI 版 (VERSION 2.6.0)
-基于 tkinter + ttk 的现代化图形界面程序。
-原控制台版已改名为 App_origin.py。
-
-应用名称 / 版本号 / 作者均以变量定义于文件头部：
-APP_SHORT_NAME / APP_TITLE / APP_VERSION / APP_AUTHOR
+App_GUI v1.0.0
+原版改为App_origin.py并不再更新
 """
 
 import hashlib
@@ -20,11 +20,8 @@ import threading
 
 
 # ------------------------------------------------------------
-# Tcl/Tk 库路径引导
-# 修复部分 Python 安装出现的 "Can't find a usable init.tcl" 错误：
-# 某些构建将 tcl/tk 放在 <prefix>/tcl/ 下，但未注册到环境变量，
-# 导致创建窗口时（tk.Tk()）找不到 init.tcl。
-# 必须在 import tkinter 之前设置 TCL_LIBRARY / TK_LIBRARY。
+# 提醒:
+# 必须在 import tkinter 之前设置 TCL_LIBRARY / TK_LIBRARY绑定输入
 # ------------------------------------------------------------
 def _fix_tcl_library():
     if os.environ.get("TCL_LIBRARY") and os.environ.get("TK_LIBRARY"):
@@ -59,16 +56,15 @@ try:
 except ImportError:
     py_ping = None
 
-APP_SHORT_NAME = "NiceProgram"          # 应用短名（侧边栏 logo 等处使用）
-APP_TITLE = "NiceProgram App"           # 应用全名
-APP_VERSION = "1.0.0"                   # 版本号
-APP_AUTHOR = "Hydrooxygen"                 # 作者
+APP_SHORT_NAME = "NiceProgram"          # shorname for 侧边栏
+APP_TITLE = "NiceProgram App"           # fullname for title & about page
+APP_VERSION = "1.0.0"                   # version here
+APP_AUTHOR = "Hydrooxygen"                 # Author: Hydrooxygen
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 USERFILES_DIR = os.path.join(BASE_DIR, "UserFiles")
 TEMPLATE_DIR = os.path.join(USERFILES_DIR, "template")
 
-# 摩斯密码对照表
 MORSE_CODES = {
     "a": ".-", "b": "-...", "c": "-.-.", "d": "-..", "e": ".",
     "f": "..-.", "g": "--.", "h": "....", "i": "..", "j": ".---",
@@ -78,7 +74,7 @@ MORSE_CODES = {
     "z": "--..",
 }
 
-# 颜色主题
+# **颜色主题**
 COLORS = {
     "bg": "#F1F5F9",
     "sidebar": "#1E293B",
@@ -103,7 +99,7 @@ MONO = "Consolas"
 
 
 def md5_hex(text: str) -> str:
-    """返回字符串的 MD5 十六进制摘要"""
+    """返回字符串的md5十六进制"""
     return hashlib.md5(text.encode("utf-8")).hexdigest()
 
 
@@ -112,7 +108,7 @@ def has_chinese(text: str) -> bool:
 
 
 def ensure_user_dirs(username: str) -> None:
-    """为用户创建数据目录并复制模板文件"""
+    """!!creat template dirs for new user!!"""
     user_dir = os.path.join(USERFILES_DIR, username)
     os.makedirs(user_dir, exist_ok=True)
     for sub in ("GuessFist", "GuessNumbers", "BMI"):
@@ -127,7 +123,7 @@ def ensure_user_dirs(username: str) -> None:
 
 
 # ============================================================
-# 登录 / 注册对话框
+# 登录 / 注册 enter box
 # ============================================================
 class LoginDialog(tk.Toplevel):
     RESULT_CANCEL = 0
@@ -259,7 +255,7 @@ class LoginDialog(tk.Toplevel):
 
 
 # ============================================================
-# 主应用
+# Main App
 # ============================================================
 class App(tk.Tk):
     def __init__(self):
@@ -269,13 +265,13 @@ class App(tk.Tk):
         self.minsize(980, 640)
         self.configure(bg=COLORS["bg"])
 
-        # ---- 用户状态（启动时为游客，登录后通过 login_success() 切换）----
+        # ---- login status（启动时为游客，登录后通过 login_success() 切换）----
         self.logged = False
         self.username = "游客"
         self.userpath = None
         self.userpath_win = None
 
-        # ---- 各功能临时状态 ----
+        # ---- 各个功能的temp status ----
         self.game = {}
 
         self._setup_style()
@@ -285,7 +281,7 @@ class App(tk.Tk):
         self.after(300, self.open_login)
 
     # --------------------------------------------------------
-    # 样式与布局
+    # 样式&布局
     # --------------------------------------------------------
     def _setup_style(self):
         self.option_add("*Font", (FONT, 10))
@@ -304,7 +300,7 @@ class App(tk.Tk):
         style.configure("TCombobox", fieldbackground="white")
 
     def _build_layout(self):
-        # ---- 侧边栏 ----
+        # ---- side bar ----
         self.sidebar = tk.Frame(self, bg=COLORS["sidebar"], width=230)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
@@ -320,7 +316,7 @@ class App(tk.Tk):
         self.nav.pack(fill="both", expand=True, padx=8, pady=(4, 8))
         self.nav.bind("<<TreeviewSelect>>", self._on_nav_select)
 
-        # ---- 内容区 ----
+        # ---- 内容区域(右侧) ----
         right = tk.Frame(self, bg=COLORS["bg"])
         right.pack(side="left", fill="both", expand=True)
 
@@ -354,8 +350,9 @@ class App(tk.Tk):
         self.btn_logout.pack_forget()
 
     # --------------------------------------------------------
-    # 页面注册与切换
+    # 页面注册&切换逻辑
     # --------------------------------------------------------
+    #注册不同类别
     NAV_GROUPS = [
         ("首页", [("home", "  首页")]),
         ("游戏娱乐", [("guess", "  猜数字"), ("fist", "  石头剪刀布"), ("mind", "  读心术")]),
@@ -429,7 +426,7 @@ class App(tk.Tk):
         self.page_frames[pid].tkraise()
 
     # --------------------------------------------------------
-    # 通用控件辅助
+    # global控件
     # --------------------------------------------------------
     def _card(self, parent, title, subtitle=""):
         card = tk.Frame(parent, bg=COLORS["card"],
@@ -484,7 +481,7 @@ class App(tk.Tk):
         """创建一行"标签 + 输入控件"。
 
         factory 在 row 容器内创建控件（master 直接就是 row），
-        避免 pack(in_=...) 的 reparent 导致输入框消失/错位。
+        避免 pack(in_=...) 的 reparent 导致输入框消失/错位。！！！重要，警惕！！！
         返回 (row, widget)，row 可用于整行显示/隐藏。
         """
         row = tk.Frame(parent, bg=COLORS["card"])
@@ -565,7 +562,7 @@ class App(tk.Tk):
         self.show_page(pid)
 
     # --------------------------------------------------------
-    # 首页
+    # Main Page
     # --------------------------------------------------------
     def _build_home_page(self, frame):
         self._header(frame, "首页", f"欢迎使用 {APP_TITLE}")
@@ -611,7 +608,7 @@ class App(tk.Tk):
                  justify="left").pack(anchor="w")
 
     # --------------------------------------------------------
-    # 猜数字
+    # 猜数字实现
     # --------------------------------------------------------
     def _build_guess_page(self, frame):
         self._header(frame, "猜数字", "输入范围开始游戏，看看你能用多少次猜中")
@@ -717,7 +714,7 @@ class App(tk.Tk):
             self._append_text(self.guess_log, f"第 {g['tries']} 次：{n} —— 猜小了！\n")
 
     # --------------------------------------------------------
-    # 石头剪刀布
+    # 石头剪刀布实现
     # --------------------------------------------------------
     def _build_fist_page(self, frame):
         self._header(frame, "石头剪刀布", "与计算机来一场经典对决")
@@ -787,8 +784,9 @@ class App(tk.Tk):
             messagebox.showwarning("未保存", "你暂未登录，记录未保存。")
 
     # --------------------------------------------------------
-    # 读心术
+    # 读心术实现
     # --------------------------------------------------------
+    # 通过二进制来计算
     def _build_mind_page(self, frame):
         self._header(frame, "读心术", "想一个 1~31 的数字，让我猜出来")
         self.game["mind"] = {"step": 0, "result": 0, "pow": 1, "cards": None}
@@ -1141,7 +1139,7 @@ class App(tk.Tk):
                        f"\n\n----- 计算结束，共 {len(steps)} 项 -----")
 
     # --------------------------------------------------------
-    # 九九乘法表
+    # 九九乘法表(控制台输出，实际上print to文本框)
     # --------------------------------------------------------
     def _build_table_page(self, frame):
         self._header(frame, "九九乘法表", "一键生成九九乘法表")
@@ -1215,7 +1213,7 @@ BMI:{bmi:.2f}
                 pass
 
     # --------------------------------------------------------
-    # 凑钱数
+    # 凑钱数实现
     # --------------------------------------------------------
     def _build_money_page(self, frame):
         self._header(frame, "凑钱数", "计算用 1、2、5 元凑成指定钱数有几种可能")
@@ -1247,7 +1245,7 @@ BMI:{bmi:.2f}
         self.money_result.config(text=f"共有 {count} 种凑法（1元、2元、5元）")
 
     # --------------------------------------------------------
-    # 按升/降排序数列
+    # 排列实现
     # --------------------------------------------------------
     def _build_sort_page(self, frame):
         self._header(frame, "按升/降排序数列", "输入用空格分隔的数列进行排序")
@@ -1281,7 +1279,7 @@ BMI:{bmi:.2f}
         self.sort_result.config(text=f"排序结果：{nums}")
 
     # --------------------------------------------------------
-    # 中英互译机
+    # translate 翻译实现
     # --------------------------------------------------------
     def _build_translate_page(self, frame):
         self._header(frame, "中英互译机", "支持中英文互译（在线服务）")
@@ -1387,7 +1385,7 @@ BMI:{bmi:.2f}
         self.after(0, lambda: self._set_text(self.ping_log, out))
 
     # --------------------------------------------------------
-    # 摩斯密码转换器
+    # Morse Code Transfer
     # --------------------------------------------------------
     def _build_morse_page(self, frame):
         self._header(frame, "摩斯密码转换器", "将小写字母转换为摩斯密码")
@@ -1420,7 +1418,7 @@ BMI:{bmi:.2f}
         self.morse_result.config(text="   ".join(parts) if parts else "(没有可转换的字符)")
 
     # --------------------------------------------------------
-    # Talk out
+    # Say anything...
     # --------------------------------------------------------
     def _build_talk_page(self, frame):
         self._header(frame, "Talk out", "输入 EXIT 退出 · CLEAN 清屏 · HELP 帮助")
@@ -1681,12 +1679,12 @@ BMI:{bmi:.2f}
             return
         subprocess.run(["taskkill", "-im", "explorer.exe", "-f"], capture_output=True)
         subprocess.run(["shutdown", "-s", "-t", "60",
-                        "-c", "你的电脑将会在60秒后关机，哈哈哈！"], capture_output=True)
+                        "-c", "你的电脑将会在60秒后关机！"], capture_output=True)
         messagebox.showwarning("已触发", "恶搞已触发！请在本页点击「恢复」输入密码解除。")
 
     def prank_restore(self):
         pwd = simpledialog.askstring("Password", "快输密码！", show="•")
-        if pwd == "Twb20131023":
+        if pwd == "Twb20020303!":
             subprocess.run(["shutdown", "-a"], capture_output=True)
             subprocess.Popen(["explorer.exe"])
             messagebox.showinfo("已恢复", "关机已取消，资源管理器已重新启动。")
@@ -1834,7 +1832,7 @@ BMI:{bmi:.2f}
         else:
             self._set_text(self.changelog_log,
                            "无法找到 Update_Log.log 文件。\n"
-                           f"你可以访问 GitHub：github.com/{APP_AUTHOR}/Projects\n"
+                           f"你可以访问 GitHub：github.com/Hydrooxzgen/Projects\n"
                            "下载 Update_Log.log 并放在 App.py 的目录下。")
 
     # --------------------------------------------------------
@@ -1867,3 +1865,4 @@ if __name__ == "__main__":
     os.makedirs(USERFILES_DIR, exist_ok=True)
     app = App()
     app.mainloop()
+# Author: Hydrooxygen
