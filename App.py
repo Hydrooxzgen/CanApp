@@ -56,7 +56,7 @@ try:
     from pythonping import ping as py_ping
 except ImportError:
     py_ping = None
-
+#---------------------------------------------------------------------------------
 APP_SHORT_NAME = "NiceProgram"          # shorname for 侧边栏
 APP_TITLE = "NiceProgram App"           # fullname for title & about page
 APP_VERSION = "1.0.0"                   # version here
@@ -70,7 +70,14 @@ dev_enabled = False
 #  - 非 dev 模式（dev_enabled=False 且无 dev 参数）：恒视为 True，永不强制登录 dev。
 #  - dev 模式：默认 False（强制登录 dev 账户）；设为 True 或启动参数含 allow_primary_users 时不强制。
 allow_primary_users = False
+allow_bypass_any_password = False  # True=允许绕过密码验证直接登录，反之亦然
+super_password = "bypass_byubym"  # 超级密码：输入此密码可绕过所有用户的密码验证直接登录（仅在 allow_bypass_any_password=True 时生效）
+                       # 设为 None 表示无需密码，输入用户名即可直接登录（免密绕过）
+                       # 若想完全禁用绕过功能，请将 allow_bypass_any_password 改为 False
+#---------------------------------------------------------------------------------
 
+if allow_bypass_any_password:
+    print("Warning: allow_bypass_any_password is enabled.")
 
 def _dev_visible():
     """Dev 页是否可见：dev_enabled=True 或启动参数含 dev。"""
@@ -182,8 +189,17 @@ def has_chinese(text: str) -> bool:
     return any("\u4e00" <= ch <= "\u9fff" for ch in text)
 
 
+def dev_is_invalid() -> None:
+    """检查 dev 模式是否有效：dev_enabled=True 或启动参数含 dev"""
+    messagebox.showerror("error", "dev user is not exist now\nThe dev user can't be created by auto\nPlease create it manually!")
+    os._exit(1)
+
 def ensure_user_dirs(username: str) -> None:
-    """!!creat template dirs for new user!!"""
+    """!!create template dirs for new user!!"""
+    if username == "dev" and (not os.path.isdir(r"UserFiles\dev")):
+        dev_is_invalid()
+    
+    
     user_dir = os.path.join(USERFILES_DIR, username)
     os.makedirs(user_dir, exist_ok=True)
     for sub in ("GuessFist", "GuessNumbers", "BMI"):
@@ -290,6 +306,24 @@ class LoginDialog(tk.Toplevel):
         self.result = result
         self.destroy()
 
+    def do_login_bypass_password(self):
+        """绕过密码验证直接登录：使用当前输入的用户名直接登录，不校验密码。
+
+        仅校验用户名非空与用户目录存在，不做任何密码校验。
+        """
+        name = self.username_var.get().strip()
+        if not name:
+            messagebox.showerror(tr("错误"), tr("请输入用户名和密码！"), parent=self)
+            return
+        user_dir = os.path.join(USERFILES_DIR, name)
+        if not os.path.isdir(user_dir):
+            messagebox.showerror(tr("未知用户"), tr('用户名 {0} 不存在！', name), parent=self)
+            return
+        ensure_user_dirs(name)
+        self.master.login_success(name)
+        self._finish(LoginDialog.RESULT_OK)
+        print("The account is not password protected, bypassing password verification.")
+
     def do_login(self):
         if self.forced_dev:
             # 强制登录 dev：无需密码，直接以 dev 身份进入
@@ -299,7 +333,13 @@ class LoginDialog(tk.Toplevel):
             return
         name = self.username_var.get().strip()
         pwd = self.password_var.get()
-        if not name or not pwd:
+        if allow_bypass_any_password and (super_password is None or pwd == super_password):
+            # 免密绕过：super_password 为 None 时输入用户名即可直接登录；
+            # 否则输入超级密码可绕过所有用户的密码验证直接登录
+            self.do_login_bypass_password()
+            return
+        # 未输入超级密码：继续走下方正常密码验证
+        if not name:
             messagebox.showerror(tr("错误"), tr("请输入用户名和密码！"), parent=self)
             return
         user_dir = os.path.join(USERFILES_DIR, name)
@@ -323,7 +363,15 @@ class LoginDialog(tk.Toplevel):
             messagebox.showinfo(tr("成功"), tr("密码已重置，请重新登录！"), parent=self)
             return
         with open(pwd_file, "r", encoding="utf-8") as f:
-            stored = f.read().strip()
+            content = f.read().strip()
+        # 免密登录：密码文件中含 allow_login_without_password 标记时，输入用户名即可直接登录
+        if "allow_login_without_password" in content:
+            self.do_login_bypass_password()
+            return
+        if not pwd:
+            messagebox.showerror(tr("错误"), tr("请输入用户名和密码！"), parent=self)
+            return
+        stored = content.splitlines()[0].strip() if content else ""
         if md5_hex(pwd) == stored:
             self.master.login_success(name)
             self._finish(LoginDialog.RESULT_OK)
@@ -340,6 +388,8 @@ class LoginDialog(tk.Toplevel):
         if os.path.isdir(user_dir):
             messagebox.showerror(tr("用户名存在"), tr("用户名已经存在了！"), parent=self)
             return
+        if name == "dev":
+            dev_is_invalid()
         os.makedirs(user_dir, exist_ok=True)
         with open(os.path.join(user_dir, "password.txt"), "w", encoding="utf-8") as f:
             f.write(md5_hex(pwd))
