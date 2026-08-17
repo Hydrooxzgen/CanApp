@@ -17,3 +17,6 @@ Thumbs.db
 
 # 日志（如需保留可删除下面这行）
 Update_Log.log
+
+# 测试生成报告（_test_all.py 每次运行都会重新生成，无需入库）
+dev/_test_report.md

@@ -66,10 +66,28 @@ APP_AUTHOR = "Hydrooxygen"                 # Author: Hydrooxygen
 # 普通用户启动时无 dev 参数且变量为 False，因此看不到 Dev 工具。
 dev_enabled = False
 
+# 允许普通用户（取消强制登录 dev）：仅在 dev 模式下生效。
+#  - 非 dev 模式（dev_enabled=False 且无 dev 参数）：恒视为 True，永不强制登录 dev。
+#  - dev 模式：默认 False（强制登录 dev 账户）；设为 True 或启动参数含 allow_primary_users 时不强制。
+allow_primary_users = False
+
 
 def _dev_visible():
     """Dev 页是否可见：dev_enabled=True 或启动参数含 dev。"""
     return dev_enabled or ("dev" in sys.argv)
+
+
+def _force_dev_login():
+    """是否强制登录 dev 账户（仅 dev 模式且未允许普通用户时）。
+
+    优先级：dev_enabled/参数 dev 最高；非 dev 模式永不强制；
+    dev 模式下启动参数 allow_primary_users 或变量 allow_primary_users=True 取消强制。
+    """
+    if not _dev_visible():
+        return False
+    if "allow_primary_users" in sys.argv:
+        return False
+    return not allow_primary_users
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 USERFILES_DIR = os.path.join(BASE_DIR, "UserFiles")
@@ -194,13 +212,15 @@ class LoginDialog(tk.Toplevel):
         self.resizable(False, False)
         self.transient(master)
         self.result = LoginDialog.RESULT_CANCEL
+        self.forced_dev = _force_dev_login()   # dev 模式强制登录 dev 账户
 
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
         self._build()
         self._center(master)
         self.grab_set()
-        self.entry_user.focus_set()
+        if not self.forced_dev:
+            self.entry_user.focus_set()
         self.bind("<Return>", lambda e: self.do_login())
 
     def _center(self, master):
@@ -223,19 +243,30 @@ class LoginDialog(tk.Toplevel):
                  fg=COLORS["text_light"]).pack(anchor="w")
         self.entry_user = self._mk_entry(outer, textvariable=self.username_var)
         self.entry_user.pack(fill="x", pady=(4, 12), ipady=4)
+        if self.forced_dev:
+            # 强制登录 dev：用户名固定显示 dev，不允许修改
+            self.username_var.set("dev")
+            self.entry_user.configure(state="disabled")
 
-        tk.Label(outer, text=tr("密码"), font=(FONT, 10), bg=COLORS["bg"],
-                 fg=COLORS["text_light"]).pack(anchor="w")
-        self.entry_pwd = self._mk_entry(outer, show="•", textvariable=self.password_var)
-        self.entry_pwd.pack(fill="x", pady=(4, 18), ipady=4)
+        if self.forced_dev:
+            # 强制登录 dev：不显示密码栏（无需密码，点登录直接进入）
+            tk.Label(outer, text=tr("强制登录 dev 账户，无需密码"), font=(FONT, 9),
+                     bg=COLORS["bg"], fg=COLORS["text_light"]).pack(anchor="w", pady=(0, 18))
+        else:
+            tk.Label(outer, text=tr("密码"), font=(FONT, 10), bg=COLORS["bg"],
+                     fg=COLORS["text_light"]).pack(anchor="w")
+            self.entry_pwd = self._mk_entry(outer, show="•", textvariable=self.password_var)
+            self.entry_pwd.pack(fill="x", pady=(4, 18), ipady=4)
 
         btns = tk.Frame(outer, bg=COLORS["bg"])
         btns.pack(fill="x")
         self._mk_btn(btns, tr("登  录"), self.do_login, "primary").pack(side="left", fill="x", expand=True)
-        self._mk_btn(btns, tr("注  册"), self.do_signup, "ghost").pack(side="left", padx=(10, 0), fill="x", expand=True)
+        if not self.forced_dev:
+            self._mk_btn(btns, tr("注  册"), self.do_signup, "ghost").pack(side="left", padx=(10, 0), fill="x", expand=True)
 
-        self._mk_btn(outer, tr("以游客身份进入"), lambda: self._finish(LoginDialog.RESULT_GUEST),
-                     "ghost").pack(fill="x", pady=(10, 0))
+        if not self.forced_dev:
+            self._mk_btn(outer, tr("以游客身份进入"), lambda: self._finish(LoginDialog.RESULT_GUEST),
+                         "ghost").pack(fill="x", pady=(10, 0))
 
     def _mk_entry(self, parent, show=None, textvariable=None):
         return tk.Entry(parent, show=show, textvariable=textvariable, font=(FONT, 12),
@@ -260,6 +291,12 @@ class LoginDialog(tk.Toplevel):
         self.destroy()
 
     def do_login(self):
+        if self.forced_dev:
+            # 强制登录 dev：无需密码，直接以 dev 身份进入
+            ensure_user_dirs("dev")
+            self.master.login_success("dev")
+            self._finish(LoginDialog.RESULT_OK)
+            return
         name = self.username_var.get().strip()
         pwd = self.password_var.get()
         if not name or not pwd:
@@ -1813,7 +1850,9 @@ class App(tk.Tk):
         action_row(tr("修改密码"), self.acc_change_password)
         action_row(tr("更改用户名"), self.acc_change_username)
         action_row(tr("初始化账户（重置数据）"), self.acc_init, "warning")
-        action_row(tr("注销账户（删除所有数据）"), self.acc_delete, "danger")
+        # dev 账户不可删除：任何情况下都不显示注销按钮
+        if self.username != "dev":
+            action_row(tr("注销账户（删除所有数据）"), self.acc_delete, "danger")
         action_row(tr("退出登录"), self.logout)
 
     def _verify_password(self) -> bool:
@@ -1868,6 +1907,10 @@ class App(tk.Tk):
         messagebox.showinfo(tr("成功"), tr("你的用户数据已被重置。"))
 
     def acc_delete(self):
+        # dev 账户不可删除：防御性检查（即使按钮被绕过也拦截）
+        if self.username == "dev":
+            messagebox.showwarning(tr("警告"), tr("dev 账户不可删除"))
+            return
         if not self._verify_password():
             return
         if not messagebox.askyesno(tr("真的吗？"), tr("注销后所有用户数据将被永久删除！")):

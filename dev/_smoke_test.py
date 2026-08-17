@@ -10,6 +10,11 @@
      show_dev_tab              —— 是否显示 Dev 开发者工具页（默认 False）
      home_message              —— 主页顶部提示条（默认"窗口仅为测试用"，设 None/"" 关闭）
      allow_login_and_account_page —— 是否允许登录与账户页（默认 False）
+     always_login_dev_account  —— 仅当 allow_login_and_account_page=True 时生效（默认 True）：
+                                  True=弹出登录窗口但强制登录 dev（用户名锁定 dev、无密码直接登录，
+                                  与 App.py 强制登录处理方式一致）；False=正常登录窗口。
+                                  allow_login_and_account_page=False 时优先级最高，直接禁止登录，
+                                  忽略本配置的值。
 
 用法：python dev/_smoke_test.py
 输入：App.py       输出：控制台逐页 OK/FAIL 报告
@@ -33,9 +38,12 @@ print("开始smoke test!!")
 # 测试窗口配置（永久手动更改，不询问用户）
 # ============================================================
 show_dev_tab = False                  # True=测试窗口导航中显示 Dev 开发者工具页
-home_message = "窗口仅为测试用"        # 主页顶部提示条；设为 None 或 "" 则不显示；设为其他字符串则显示该内容
+home_message = "窗口仅为冒烟测试用，所有box类弹窗都将输出至控制台"        # 主页顶部提示条；设为 None 或 "" 则不显示；设为其他字符串则显示该内容
 allow_login_and_account_page = False  # True=允许登录对话框与账户页（False=禁止登录、隐藏账户页与登录按钮）
-APP_TITLE = "测试结束前不要关闭这个窗口"                  # 测试窗口标题（手动改即可）
+always_login_dev_account = True       # 仅当 allow_login_and_account_page=True 时生效：
+                                      #   True=弹出登录窗口但强制登录 dev（用户名锁定 dev、无需密码，
+                                      #   与 App.py 强制登录处理方式一致）；False=正常登录窗口
+APP_TITLE = "测试结束前不要关闭这个窗口，以防测试结果错误！"                  # 测试窗口标题（手动改即可）
 # ---- 打桩：避免弹窗阻塞与危险操作 ----
 import tkinter.messagebox as _mb
 _mb.showinfo = lambda *a, **k: print("[msgbox-info]", str(a[1])[:40])
@@ -69,6 +77,25 @@ import App
 # 且手动输入用户名密码会真实创建用户目录，污染 UserFiles/ 测试环境。
 if not allow_login_and_account_page:
     App.App.open_login = lambda self: None
+
+# 强制 dev 登录：allow_login_and_account_page 优先级始终最高。
+#  - alacp=False：上面已打桩禁止登录，完全不考虑 always_login_dev_account 的值。
+#  - alacp=True 且 always_login_dev_account=True：与 App.py 处理方式一致——
+#    弹出登录窗口但强制为 dev（patch _force_dev_login 使 LoginDialog 进入 forced_dev 分支：
+#    用户名锁定 dev、不显示密码栏、无需密码直接登录）；同时自动完成 dev 登录，
+#    避免模态登录窗口阻塞自动测试。
+#  - alacp=True 且 always_login_dev_account=False：正常登录窗口（人工验证）。
+if allow_login_and_account_page and always_login_dev_account:
+    App._force_dev_login = lambda: True
+    _orig_open_login = App.App.open_login
+
+    def _auto_dev_open_login(self):
+        dialog = App.LoginDialog(self)
+        # 强制 dev 登录窗口：短暂显示（便于人工确认 UI）后自动以 dev 身份登录
+        self.after(1500, lambda: dialog.do_login() if dialog.winfo_exists() else None)
+        self.wait_window(dialog)
+
+    App.App.open_login = _auto_dev_open_login
 
 # 隐藏不需要的页面（show_dev_tab / allow_login_and_account_page 开关）
 # show_dev_tab=True 时强制打开 App 的 dev_enabled，使 Dev 页在测试窗口可见
