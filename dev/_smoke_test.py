@@ -82,20 +82,10 @@ if not allow_login_and_account_page:
 #  - alacp=False：上面已打桩禁止登录，完全不考虑 always_login_dev_account 的值。
 #  - alacp=True 且 always_login_dev_account=True：与 App.py 处理方式一致——
 #    弹出登录窗口但强制为 dev（patch _force_dev_login 使 LoginDialog 进入 forced_dev 分支：
-#    用户名锁定 dev、不显示密码栏、无需密码直接登录）；同时自动完成 dev 登录，
-#    避免模态登录窗口阻塞自动测试。
+#    用户名锁定 dev、不显示密码栏、无需密码直接登录）。
 #  - alacp=True 且 always_login_dev_account=False：正常登录窗口（人工验证）。
 if allow_login_and_account_page and always_login_dev_account:
     App._force_dev_login = lambda: True
-    _orig_open_login = App.App.open_login
-
-    def _auto_dev_open_login(self):
-        dialog = App.LoginDialog(self)
-        # 强制 dev 登录窗口：短暂显示（便于人工确认 UI）后自动以 dev 身份登录
-        self.after(1500, lambda: dialog.do_login() if dialog.winfo_exists() else None)
-        self.wait_window(dialog)
-
-    App.App.open_login = _auto_dev_open_login
 
 # 隐藏不需要的页面（show_dev_tab / allow_login_and_account_page 开关）
 # show_dev_tab=True 时强制打开 App 的 dev_enabled，使 Dev 页在测试窗口可见
