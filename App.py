@@ -189,17 +189,8 @@ def has_chinese(text: str) -> bool:
     return any("\u4e00" <= ch <= "\u9fff" for ch in text)
 
 
-def dev_is_invalid() -> None:
-    """检查 dev 模式是否有效：dev_enabled=True 或启动参数含 dev"""
-    messagebox.showerror("error", "dev user is not exist now\nThe dev user can't be created by auto\nPlease create it manually!")
-    os._exit(1)
-
 def ensure_user_dirs(username: str) -> None:
     """!!create template dirs for new user!!"""
-    if username == "dev" and (not os.path.isdir(r"UserFiles\dev")):
-        dev_is_invalid()
-    
-    
     user_dir = os.path.join(USERFILES_DIR, username)
     os.makedirs(user_dir, exist_ok=True)
     for sub in ("GuessFist", "GuessNumbers", "BMI"):
@@ -363,7 +354,7 @@ class LoginDialog(tk.Toplevel):
             messagebox.showinfo(tr("成功"), tr("密码已重置，请重新登录！"), parent=self)
             return
         with open(pwd_file, "r", encoding="utf-8") as f:
-            content = f.read().strip()
+            content = f.read().strip().lstrip("\ufeff")  # 兼容 UTF-8 BOM
         # 免密登录：密码文件中含 allow_login_without_password 标记时，输入用户名即可直接登录
         if "allow_login_without_password" in content:
             self.do_login_bypass_password()
@@ -388,8 +379,6 @@ class LoginDialog(tk.Toplevel):
         if os.path.isdir(user_dir):
             messagebox.showerror(tr("用户名存在"), tr("用户名已经存在了！"), parent=self)
             return
-        if name == "dev":
-            dev_is_invalid()
         os.makedirs(user_dir, exist_ok=True)
         with open(os.path.join(user_dir, "password.txt"), "w", encoding="utf-8") as f:
             f.write(md5_hex(pwd))
@@ -1118,7 +1107,7 @@ class App(tk.Tk):
         try:
             total = int(self.acc_total.get())
             right = int(self.acc_right.get())
-            if right > total:
+            if total <= 0 or right < 0 or right > total:
                 raise ValueError
             rate = right / total * 100
             self.acc_result.config(text=tr('正确率：{0:.2f}%', rate))
@@ -1913,8 +1902,11 @@ class App(tk.Tk):
         pwd_file = os.path.join(self.userpath, "password.txt")
         if os.path.isfile(pwd_file):
             with open(pwd_file, "r", encoding="utf-8") as f:
-                if md5_hex(pwd) == f.read().strip():
-                    return True
+                content = f.read().strip().lstrip("\ufeff")  # 兼容 UTF-8 BOM
+            # 与 do_login 一致：仅比对第一行（密码 hash），兼容免密标记等附加行
+            stored = content.splitlines()[0].strip() if content else ""
+            if md5_hex(pwd) == stored:
+                return True
         messagebox.showerror(tr("密码错误"), tr("密码错误，请重试！"))
         return False
 
