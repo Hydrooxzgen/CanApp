@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
-"""【调试工具】分析 App.py 中中文字符串规模（f-string / 普通字符串统计）。
+"""【调试工具】分析 CanApp.py 中中文字符串规模（f-string / 普通字符串统计）。
 
 用途：评估 i18n 改造工作量，粗略统计含中文的 f-string 与普通字符串数量。
 
 用法：python dev/_analyze.py
-输入：App.py       输出：控制台统计报告
+输入：CanApp.py       输出：控制台统计报告
 """
 import io
 import os
 import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-src = io.open(os.path.join(ROOT, 'App.py'), encoding='utf-8').read()
+src = io.open(os.path.join(ROOT, 'CanApp.py'), encoding='utf-8').read()
 
 # 粗略统计：f-string 中含中文
 f_strings = re.findall(r'f["\'](?:[^"\'\\]|\\.)*[\u4e00-\u9fff]', src)

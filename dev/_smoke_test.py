@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""【验证工具】App.py GUI 冒烟测试：遍历所有页面 + 三语（简/繁/英）循环切换。
+"""【验证工具】CanApp.py GUI 冒烟测试：遍历所有页面 + 三语（简/繁/英）循环切换。
 
 用途：
   1. 导入 App 模块并启动 App()
@@ -12,12 +12,12 @@
      allow_login_and_account_page —— 是否允许登录与账户页（默认 False）
      always_login_dev_account  —— 仅当 allow_login_and_account_page=True 时生效（默认 True）：
                                   True=弹出登录窗口但强制登录 dev（用户名锁定 dev、无密码直接登录，
-                                  与 App.py 强制登录处理方式一致）；False=正常登录窗口。
+                                  与 CanApp.py 强制登录处理方式一致）；False=正常登录窗口。
                                   allow_login_and_account_page=False 时优先级最高，直接禁止登录，
                                   忽略本配置的值。
 
 用法：python dev/_smoke_test.py
-输入：App.py       输出：控制台逐页 OK/FAIL 报告
+输入：CanApp.py       输出：控制台逐页 OK/FAIL 报告
 依赖：重建管线（_rebuild.py + _fstring_convert.py）之后运行
 """
 import io
@@ -25,7 +25,7 @@ import os
 import sys
 import traceback
 
-# 项目根加入 sys.path，确保 import App 可用
+# 项目根加入 sys.path，确保 import CanApp 可用
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
@@ -42,7 +42,7 @@ home_message = "窗口仅为冒烟测试用，所有box类弹窗都将输出至�
 allow_login_and_account_page = False  # True=允许登录对话框与账户页（False=禁止登录、隐藏账户页与登录按钮）
 always_login_dev_account = True       # 仅当 allow_login_and_account_page=True 时生效：
                                       #   True=弹出登录窗口但强制登录 dev（用户名锁定 dev、无需密码，
-                                      #   与 App.py 强制登录处理方式一致）；False=正常登录窗口
+                                      #   与 CanApp.py 强制登录处理方式一致）；False=正常登录窗口
 APP_TITLE = "测试结束前不要关闭这个窗口，以防测试结果错误！"                  # 测试窗口标题（手动改即可）
 # ---- 打桩：避免弹窗阻塞与危险操作 ----
 import tkinter.messagebox as _mb
@@ -66,66 +66,60 @@ _sp.Popen = lambda *a, **k: print("[subprocess]", str(a)[:60])
 _sp.run = lambda *a, **k: print("[subprocess.run]", str(a)[:60])
 
 import importlib
-print("尝试导入App...")
-import App
+print("尝试导入CanApp...")
+import CanApp
 
 # ---- 按配置调整 App 行为（monkey-patch，仅本进程生效） ----
-
-# 登录打桩：allow_login_and_account_page=False 时禁止登录，不弹模态登录框。
-# 若不打桩，App 启动 300ms 后会自动弹 LoginDialog（wait_window + grab_set），
-# 模态锁定主窗口导致页面切换在后台进行、观感上"页面不自动切换"，
-# 且手动输入用户名密码会真实创建用户目录，污染 UserFiles/ 测试环境。
-if not allow_login_and_account_page:
-    App.App.open_login = lambda self: None
+# CanApp.py 已删除启动自动弹出登录框的逻辑（不再 after(300, open_login)），无需打桩。
 
 # 强制 dev 登录：allow_login_and_account_page 优先级始终最高。
-#  - alacp=False：上面已打桩禁止登录，完全不考虑 always_login_dev_account 的值。
-#  - alacp=True 且 always_login_dev_account=True：与 App.py 处理方式一致——
+#  - alacp=False：登录按钮已隐藏，完全不考虑 always_login_dev_account 的值。
+#  - alacp=True 且 always_login_dev_account=True：与 CanApp.py 处理方式一致——
 #    弹出登录窗口但强制为 dev（patch _force_dev_login 使 LoginDialog 进入 forced_dev 分支：
 #    用户名锁定 dev、不显示密码栏、无需密码直接登录）。
 #  - alacp=True 且 always_login_dev_account=False：正常登录窗口（人工验证）。
 if allow_login_and_account_page and always_login_dev_account:
-    App._force_dev_login = lambda: True
+    CanApp._force_dev_login = lambda: True
 
 # 隐藏不需要的页面（show_dev_tab / allow_login_and_account_page 开关）
 # show_dev_tab=True 时强制打开 App 的 dev_enabled，使 Dev 页在测试窗口可见
 if show_dev_tab:
-    App.dev_enabled = True
+    CanApp.dev_enabled = True
 _hidden = set()
 if not show_dev_tab:
     _hidden.add("dev")
 if not allow_login_and_account_page:
     _hidden.add("account")
 if _hidden:
-    App.App.PAGE_BUILDERS = {k: v for k, v in App.App.PAGE_BUILDERS.items() if k not in _hidden}
-    _orig_nav_groups = App.App._nav_groups
+    CanApp.App.PAGE_BUILDERS = {k: v for k, v in CanApp.App.PAGE_BUILDERS.items() if k not in _hidden}
+    _orig_nav_groups = CanApp.App._nav_groups
 
     def _nav_groups_filtered(self):
         return [(g, [it for it in items if it[0] not in _hidden])
                 for g, items in _orig_nav_groups(self)]
 
-    App.App._nav_groups = _nav_groups_filtered
+    CanApp.App._nav_groups = _nav_groups_filtered
 
 # 主页顶部提示条（home_message 配置）
 if home_message:
-    _orig_build_home = App.App._build_home_page
+    _orig_build_home = CanApp.App._build_home_page
 
     def _build_home_with_msg(self, frame):
         _orig_build_home(self, frame)
         children = frame.winfo_children()
-        lbl = App.tk.Label(frame, text=home_message, font=(App.FONT, 10, "bold"),
-                           bg=App.COLORS["warning"], fg="white", anchor="w",
+        lbl = CanApp.tk.Label(frame, text=home_message, font=(CanApp.FONT, 10, "bold"),
+                           bg=CanApp.COLORS["warning"], fg="white", anchor="w",
                            padx=12, pady=6)
         if children:
             lbl.pack(fill="x", before=children[0])
         else:
             lbl.pack(fill="x")
 
-    App.App._build_home_page = _build_home_with_msg
+    CanApp.App._build_home_page = _build_home_with_msg
 
 print("模块导入成功")
 
-app = App.App()
+app = CanApp.App()
 app.title(APP_TITLE)
 app.update()
 
@@ -134,7 +128,7 @@ if not allow_login_and_account_page:
     app.btn_switch.pack_forget()
 
 errors = []
-print("登录对话框已打桩（不弹出），开始遍历页面...")
+print("开始遍历页面...")
 
 
 def try_page(pid):
@@ -155,7 +149,7 @@ def run_tests():
     print("  语言按钮:", app.btn_lang.cget("text"))
 
     # 2. 遍历所有导航页面
-    pids = [pid for pid, _ in App.App.PAGE_BUILDERS.items()]
+    pids = [pid for pid, _ in CanApp.App.PAGE_BUILDERS.items()]
     print("总页面数:", len(pids))
     ok = 0
     for pid in pids:
@@ -169,7 +163,7 @@ def run_tests():
         try:
             app._switch_lang()
             app.update()
-            cur = App._CURRENT_LANG
+            cur = CanApp._CURRENT_LANG
             print(f"[{langs[i]}] 当前语言:{cur} 语言按钮:{app.btn_lang.cget('text')}")
             print(f"[{langs[i]}] 状态栏:{app.status_user.cget('text')}")
             print(f"[{langs[i]}] 首页标题:{app.nav.item(app.nav.get_children()[0], 'text')}")

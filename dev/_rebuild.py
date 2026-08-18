@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""【重建管线 · 第 1 步】一键重建 App.py（多语言切换版）。
+"""【重建管线 · 第 1 步】一键重建 CanApp.py（多语言切换版）。
 
-用途：从单语言版 AppGUI_CHS.py 生成多语言版 App.py。
+用途：从单语言版 AppGUI_CHS.py 生成多语言版 CanApp.py。
 步骤：
   1. 复制 AppGUI_CHS.py 干净源码
   2. 注入 i18n 基础设施（import json + 语言加载 + tr()）
@@ -10,7 +10,7 @@
   5. 修复 batch 页 _row bug、APP_VERSION 去 tr()、注入语言切换 UI
 
 用法：python dev/_rebuild.py
-输入：AppGUI_CHS.py       输出：App.py
+输入：AppGUI_CHS.py       输出：CanApp.py
 依赖：需先运行本脚本，再运行 _fstring_convert.py
 """
 import ast
@@ -21,7 +21,7 @@ import tokenize
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "AppGUI_CHS.py")
-DST = os.path.join(ROOT, "App.py")
+DST = os.path.join(ROOT, "CanApp.py")
 
 I18N_BLOCK = '''
 # ==================== 多语言支持（i18n） ====================
@@ -290,7 +290,7 @@ def main():
     new_src = new_src.replace('APP_VERSION = tr("1.0.0 单语言简体中文版")',
                               'APP_VERSION = "1.0.0 单语言简体中文版"', 1)
 
-    # ---- 4.6 注入多语言切换 UI（不写入 App.py，仅 App_new.py 拥有）----
+    # ---- 4.6 注入多语言切换 UI（不写入 CanApp.py，仅 App_new.py 拥有）----
     # a. show_page 记录当前页
     assert new_src.count('    def show_page(self, pid):\n        if pid not in self.page_frames:') == 1
     new_src = new_src.replace(

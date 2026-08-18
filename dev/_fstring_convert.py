@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""【重建管线 · 第 2 步】把 App.py 中含中文的 f-string 转换为 tr('模板', 参数...)。
+"""【重建管线 · 第 2 步】把 CanApp.py 中含中文的 f-string 转换为 tr('模板', 参数...)。
 
 用途：_rebuild.py 执行后，将剩余的 f-string 翻译为 i18n 调用。
 注：i18n的作用是通过key找到对应语言的翻译文本
@@ -8,7 +8,7 @@
 - 无中文字面量的 f-string 跳过（如 f"{total}"）
 
 用法：python dev/_fstring_convert.py
-输入：App.py       输出：App.py（原地修改）
+输入：CanApp.py       输出：CanApp.py（原地修改）
 依赖：先运行 _rebuild.py，之后建议运行 _smoke_test.py 验证
 """
 import ast
@@ -18,7 +18,7 @@ import token
 import tokenize
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, "App.py")
+SRC = os.path.join(ROOT, "CanApp.py")
 
 
 def has_cn(text):

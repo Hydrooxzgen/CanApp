@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """【验证工具】i18n 转换完整性检查。
 
-用途：检查 App.py 中是否存在转换残留/错误：
+用途：检查 CanApp.py 中是否存在转换残留/错误：
   1. 含中文的 f-string（应全部转成 tr()，只允许 f"{total}" 这类无中文的）
   2. tr(tr( 双重包裹残留
   3. 格式说明符错误（如 f'.2f'）
   4. tr( 调用总数统计
 
 用法：python dev/_check_i18n.py
-输入：App.py       输出：控制台检查报告
+输入：CanApp.py       输出：控制台检查报告
 """
 import ast
 import io
@@ -16,7 +16,7 @@ import os
 import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-s = io.open(os.path.join(ROOT, 'App.py'), encoding='utf-8').read()
+s = io.open(os.path.join(ROOT, 'CanApp.py'), encoding='utf-8').read()
 tree = ast.parse(s)
 
 

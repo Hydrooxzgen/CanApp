@@ -5,7 +5,7 @@
 # Github: github.com/Hydrooxzgen
 # ------------------------------------------------------------
 """
-App_GUI v1.0.0
+CanApp v1.0.0
 原版改为App_origin.py并不再更新
 """
 
@@ -57,10 +57,10 @@ try:
 except ImportError:
     py_ping = None
 #---------------------------------------------------------------------------------
-APP_SHORT_NAME = "NiceProgram"          # shorname for 侧边栏
-APP_TITLE = "NiceProgram App"           # fullname for title & about page
-APP_VERSION = "1.0.0"                   # version here
-APP_AUTHOR = "Hydrooxygen"                 # Author: Hydrooxygen
+APP_SHORT_NAME = "CanApp"           # shorname for 侧边栏
+APP_TITLE = "CanApp"                # fullname for title & about page
+APP_VERSION = "1.1.0"               # version here
+APP_AUTHOR = "Hydrooxygen"          # Author: Hydrooxygen
 
 # Dev 开发者工具开关：dev_enabled=True 或启动参数含 "dev" 时显示 Dev 页，否则隐藏。
 # 普通用户启动时无 dev 参数且变量为 False，因此看不到 Dev 工具。
@@ -420,7 +420,6 @@ class App(tk.Tk):
         self._build_layout()
         self._register_pages()
         self.show_page("home")
-        self.after(300, self.open_login)
 
     # --------------------------------------------------------
     # 样式&布局
@@ -789,14 +788,11 @@ class App(tk.Tk):
                                         COLORS["success"] if self.logged else COLORS["warning"])
         stat_card(tr("数据目录"), "UserFiles", COLORS["text_light"])
 
-        card, body = self._card(wrap, tr("快速开始"), tr("从左侧导航选择一个功能开始使用"))
-        tk.Label(body, text=tr('·  🎯 猜数字 —— 与计算机斗智斗勇\n·  ✊ 石头剪刀布 —— 经典对决\n·  🌐 中英互译机 —— 在线翻译\n·  📶 Ping —— 网络连通性测试\n·  更多功能尽在左侧导航…')
-                                                  
-                                                  
-                                                    
-                                            ,
-                 font=(FONT, 10), bg=COLORS["card"], fg=COLORS["text"],
-                 justify="left").pack(anchor="w")
+        card, body = self._card(wrap, tr("更新日志"), tr("从 GitHub 获取最新版本信息"))
+        card.pack(fill="x", pady=(16, 0))
+        self.home_log = self._mk_text(body, height=8)
+        self.home_log.pack(fill="x")
+        self._start_fetch_log(self.home_log)
 
     # --------------------------------------------------------
     # 猜数字实现
@@ -2008,16 +2004,60 @@ class App(tk.Tk):
         self.changelog_log = self._mk_text(body, height=18)
         self.changelog_log.pack(fill="both", expand=True)
 
-        log_path = os.path.join(BASE_DIR, "Update_Log.log")
-        if os.path.isfile(log_path):
+        # 每次打开直接从 GitHub 拉取更新日志，避免卡界面
+        self._start_fetch_log(self.changelog_log)
+
+    def _start_fetch_log(self, widget):
+        """在指定控件显示占位文案并后台拉取 GitHub Release 更新日志。"""
+        self._set_text(widget, tr("正在从 GitHub 获取更新日志…"))
+        threading.Thread(target=self._fetch_remote_log, args=(widget,), daemon=True).start()
+
+    def _fetch_remote_log(self, widget):
+        """后台线程：从 GitHub Release 拉取当前版本的发布说明（notes）并更新 widget。
+
+        通过 GitHub API 获取 tag=v{APP_VERSION} 的 Release，展示其 notes；
+        失败（无网/无该版本 Release）时显示错误提示。
+        """
+        import json
+        import urllib.request
+        url = "https://api.github.com/repos/Hydrooxzgen/CanApp/releases/tags/v" + APP_VERSION
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": f"CanApp/{APP_VERSION}", "Accept": "application/vnd.github+json"})
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            release_name = data.get("name") or ("CanApp v" + APP_VERSION)
+            release_body = (data.get("body") or "").strip()
+            remote_text = release_name + "\n" + release_body
+            not_found = False
+        except urllib.error.HTTPError as e:
+            remote_text = None
+            not_found = (e.code == 404)
+            err = e
+        except Exception as e:
+            remote_text = None
+            not_found = False
+            err = e
+
+        def _apply():
             try:
-                with open(log_path, "r", encoding="utf-8") as f:
-                    self._set_text(self.changelog_log, f.read())
-            except OSError as e:
-                self._set_text(self.changelog_log, tr('读取失败：{0}', e))
-        else:
-            self._set_text(self.changelog_log,
-                           tr("无法找到 Update_Log.log 文件。\n你可以访问 GitHub：github.com/Hydrooxzgen/Projects\n下载 Update_Log.log 并放在 App.py 的目录下。"))
+                if not widget.winfo_exists():
+                    return
+                if remote_text is not None:
+                    self._set_text(widget,
+                                   tr("已从 GitHub 获取 Release 更新日志：\n\n") + remote_text)
+                elif not_found:
+                    self._set_text(widget,
+                                   tr("\n\n（GitHub 上未找到 v{0} 的 Release 记录）", APP_VERSION))
+                else:
+                    # 拉取失败：显示错误提示
+                    self._set_text(widget,
+                                   tr("\n\n（无法连接 GitHub：{0}）", getattr(err, "reason", err)))
+            except tk.TclError:
+                pass
+        try:
+            self.after(0, _apply)
+        except tk.TclError:
+            pass
 
     # --------------------------------------------------------
     # 开发者工具（Dev 模块）

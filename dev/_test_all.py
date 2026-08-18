@@ -17,7 +17,7 @@
   python dev/_test_all.py B        # 只跑 B 段
   python dev/_test_all.py C        # 只跑 C 段
   python dev/_test_all.py D        # 只跑 D 段
-输入：App.py + lang/*.json + UserFiles/    输出：控制台报告 + dev/_test_report.md
+输入：CanApp.py + lang/*.json + UserFiles/    输出：控制台报告 + dev/_test_report.md
 依赖：dev/_diff_lang.py / dev/_check_i18n.py / dev/_smoke_test.py（需可显示 GUI 环境）
 """
 import io
@@ -87,8 +87,8 @@ def run_static():
     print("\n===== A. 静态检查 =====")
 
     def a1():
-        py_compile.compile(os.path.join(ROOT, "App.py"), doraise=True)
-        return True, "App.py 语法 OK"
+        py_compile.compile(os.path.join(ROOT, "CanApp.py"), doraise=True)
+        return True, "CanApp.py 语法 OK"
 
     def a2():
         langs = [f for f in os.listdir(os.path.join(ROOT, "lang")) if f.endswith(".json")]
@@ -99,7 +99,7 @@ def run_static():
         return len(langs) == 3, " / ".join(sizes)
 
     def a3():
-        need = ["App.py", "AppGUI_CHS.py", "lang/zh_CN.json", "lang/en_US.json",
+        need = ["CanApp.py", "AppGUI_CHS.py", "lang/zh_CN.json", "lang/en_US.json",
                 "lang/zh_TW.json", "UserFiles/template/GuessFist",
                 "UserFiles/template/GuessNumbers", "UserFiles/template/BMI"]
         missing = [p for p in need if not os.path.exists(os.path.join(ROOT, p))]
@@ -124,42 +124,42 @@ def run_static():
 def run_unit():
     print("\n===== B. 单元测试 =====")
     import hashlib
-    import App
+    import CanApp
 
     def b1():
-        got = App.md5_hex("")
+        got = CanApp.md5_hex("")
         return got == "d41d8cd98f00b204e9800998ecf8427e", got
 
     def b2():
         s = "Hello 你好 123"
-        return App.md5_hex(s) == hashlib.md5(s.encode("utf-8")).hexdigest(), "与 hashlib 一致"
+        return CanApp.md5_hex(s) == hashlib.md5(s.encode("utf-8")).hexdigest(), "与 hashlib 一致"
 
     def b3():
-        return (App.has_chinese("你好") and not App.has_chinese("hello") and not App.has_chinese("123")), ""
+        return (CanApp.has_chinese("你好") and not CanApp.has_chinese("hello") and not CanApp.has_chinese("123")), ""
 
     def b4():
-        App._load_lang("zh_CN")
-        return App.tr("【不存在的键_测试】") == "【不存在的键_测试】", "回退原文"
+        CanApp._load_lang("zh_CN")
+        return CanApp.tr("【不存在的键_测试】") == "【不存在的键_测试】", "回退原文"
 
     def b5():
-        App._load_lang("zh_CN")
-        got = App.tr("Ping 失败：{0}", "timeout")
+        CanApp._load_lang("zh_CN")
+        got = CanApp.tr("Ping 失败：{0}", "timeout")
         return got == "Ping 失败：timeout", got
 
     def b5b():
-        App._load_lang("zh_TW")
-        got = App.tr("👤 当前用户：{0}", "Alice")
+        CanApp._load_lang("zh_TW")
+        got = CanApp.tr("👤 当前用户：{0}", "Alice")
         return "Alice" in got and "當前用戶" in got, got
 
     def b6():
         sizes = {}
-        for code in App.LANGUAGES:
-            App._load_lang(code)
-            sizes[code] = len(App._LANG_DICT)
+        for code in CanApp.LANGUAGES:
+            CanApp._load_lang(code)
+            sizes[code] = len(CanApp._LANG_DICT)
         return all(v > 300 for v in sizes.values()), str(sizes)
 
     def b7():
-        labels = {k: v for k, v in App.LANGUAGES.items()}
+        labels = {k: v for k, v in CanApp.LANGUAGES.items()}
         return list(labels.keys()) == ["zh_CN", "zh_TW", "en_US"], str(labels)
 
     check("B", "md5_hex 空串", b1)

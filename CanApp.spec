@@ -1,17 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller 打包配置：NiceProgram
-# 用法: py -m PyInstaller NiceProgram.spec
-# 输出: dist/NiceProgram/App.exe  (onedir)
+# PyInstaller 打包配置：CanApp
+# 用法: py -m PyInstaller CanApp.spec
+# 输出: dist/CanApp/CanApp.exe  (onedir)
 
 a = Analysis(
-    ['App.py'],
+    ['CanApp.py'],
     pathex=[],
     binaries=[],
     datas=[
         ('lang', 'lang'),
         ('UserFiles/template', 'UserFiles/template'),
         ('ActiveScript.bat', '.'),
-        ('Update_Log.log', '.'),
     ],
     hiddenimports=['requests', 'pythonping'],
     hookspath=[],
@@ -28,7 +27,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='App',
+    name='CanApp',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -48,5 +47,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='NiceProgram',
+    name='CanApp',
 )
