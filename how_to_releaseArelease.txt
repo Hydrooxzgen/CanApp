@@ -1,0 +1,120 @@
+# CanApp 发布新版本完整流程（Release Guide）
+
+> 仓库：https://github.com/Hydrooxzgen/CanApp
+> 适用：CanApp（原 App.py / NiceProgram App）
+> 版本号规则：功能新增 → 1.x.0 递增小版本；大改动 → 递增大版本
+
+---
+
+## 0. 前置条件（只需首次准备）
+
+| 工具 | 检查命令 | 说明 |
+|------|----------|------|
+| Python 3.13 | `py --version` | 用 `py` 命令启动 |
+| PyInstaller | `py -m PyInstaller --version` | 打包 exe 用 |
+| Inno Setup | 确认 `D:\InnoSetup\InstallPath\ISCC.exe` 存在 | 制作安装程序 |
+| GitHub CLI | `gh --version` | 需已登录：`gh auth login` |
+| git | `git --version` | 版本管理 |
+
+**终端编码**：每次执行 Python 前先设置，避免中文乱码：
+
+```powershell
+$env:PYTHONIOENCODING="utf-8"
+```
+
+---
+
+## 1. 改版本号（2 个文件必须同步）
+
+**`CanApp.py`**（约第 62 行）：
+
+```python
+APP_VERSION = "1.1.0"   # ← 改成新版本号，例如 1.2.0
+```
+
+**`CanApp_installer.iss`**（第 6 行）：
+
+```ini
+#define MyAppVersion "1.1.0"   # ← 同步改成同样版本号
+```
+
+> 注意：应用内「更新日志」页会按 `v{APP_VERSION}` 从 GitHub 拉取对应 tag 的 Release notes，所以版本号必须与 tag 一致。
+
+---
+
+## 2. 跑测试验证（建议每次都跑）
+
+```powershell
+# 检查三语 i18n 键同步（期望输出"总计差异: 0"）
+$env:PYTHONIOENCODING="utf-8"; py dev\_diff_lang.py
+
+# 跑完整测试套件（期望"通过 14 / 14"）
+$env:PYTHONIOENCODING="utf-8"; py dev\_test_all.py
+
+# 清理冒烟测试残留进程（如有）
+Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object { $_.CommandLine -like '*_smoke_test*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+```
+
+---
+
+## 3. 打包 exe（PyInstaller）
+
+```powershell
+py -m PyInstaller CanApp.spec --noconfirm --clean
+```
+
+产物：`dist\CanApp\CanApp.exe`（onedir 模式）
+
+---
+
+## 4. 制作安装程序（Inno Setup）
+
+```powershell
+& "D:\InnoSetup\InstallPath\ISCC.exe" .\CanApp_installer.iss
+```
+
+> 路径带引号时**必须**用 `&` 调用运算符，否则ps语法err。
+> EXE result：`dist\CanApp_Setup_{版本号}.exe`（文件名自动带版本号）
+
+---
+
+## 5. 提交代码
+
+```powershell
+git add -A
+git status --short        # 先确认暂存内容符合预期
+git commit -m "Bump version to v1.1.0"
+```
+
+> 用 `git add -A` 而不是 `git add .`：`-A` 会包含所有已删除文件，行为更稳定。
+
+---
+
+## 6. 打tag推送
+
+git tag v1.1.0
+git push origin main
+git push origin v1.1.0
+
+
+---
+
+## 7. 创建 远程仓库Releaseeeeeee
+
+
+gh release create [VERSION] "H:\Projects\App\dist\CanApp_Setup_1.1.0.exe" --title "CanApp v1.1.0" --notes "更新说明"
+
+
+>   gh release delete-asset v1.1.0 CanApp_Setup_1.1.0.exe
+>   gh release upload v1.1.0 "H:\Projects\App\dist\CanApp_Setup_1.1.0.exe"
+>   gh release edit v1.1.0 --notes "新的说明"
+
+---
+
+## 8. 验证
+
+1. 打开应用 → 主页「更新日志」卡片 / 「更新日志」页，应显示新版本的 Release notes
+2. 下载安装包，测试安装、卸载、桌面快捷方式
+3. 确认三语界面（zh_CN / zh_TW / en_US）切换正常
+
+---
