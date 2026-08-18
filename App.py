@@ -96,11 +96,20 @@ def _force_dev_login():
         return False
     return not allow_primary_users
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# 路径解析：兼容 PyInstaller 打包（frozen）与源码运行两种模式。
+#  - frozen: BASE_DIR=exe 所在目录（UserFiles 可写持久）；数据目录 onefile 时为 _MEIPASS 临时解压目录，onedir 时为 exe 目录。
+#  - 源码:  均为 __file__ 所在目录。
+if getattr(sys, "frozen", False):
+    BASE_DIR = os.path.dirname(os.path.abspath(sys.executable))
+    _DATA_DIR = getattr(sys, "_MEIPASS", BASE_DIR)
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    _DATA_DIR = BASE_DIR
+
 USERFILES_DIR = os.path.join(BASE_DIR, "UserFiles")
-TEMPLATE_DIR = os.path.join(USERFILES_DIR, "template")
+TEMPLATE_DIR = os.path.join(_DATA_DIR, "UserFiles", "template")
 # ==================== 多语言支持（i18n） ====================
-LANG_DIR = os.path.join(BASE_DIR, "lang")
+LANG_DIR = os.path.join(_DATA_DIR, "lang")
 _CURRENT_LANG = "zh_CN"          # 当前语言（zh_CN / en_US ...）
 _LANG_DICT = {}                  # 当前语言的翻译字典 {中文原文: 翻译}
 
