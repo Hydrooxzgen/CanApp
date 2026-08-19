@@ -503,6 +503,7 @@ class App(tk.Tk):
         groups = [
             (tr("首页"), [("home", tr("  首页"))]),
             (tr("游戏娱乐"), [("guess", tr("  猜数字")), ("fist", tr("  石头剪刀布")), ("mind", tr("  读心术"))]),
+            (tr("效率工具"), [("pomodoro", tr("  番茄钟"))]),
             (tr("数学工具"), [("base", tr("  进制转换")), ("accuracy", tr("  计算正确率")),
                         ("average", tr("  计算平均数")), ("rabbit", tr("  鸡兔同笼")),
                         ("collatz", tr("  Collatz数列")), ("table", tr("  九九乘法表")),
@@ -526,6 +527,7 @@ class App(tk.Tk):
         "guess": "_build_guess_page",
         "fist": "_build_fist_page",
         "mind": "_build_mind_page",
+        "pomodoro": "_build_pomodoro_page",
         "base": "_build_base_page",
         "accuracy": "_build_accuracy_page",
         "average": "_build_average_page",
@@ -1031,6 +1033,102 @@ class App(tk.Tk):
         m["pow"] *= 2
         m["step"] += 1
         self.mind_next()
+
+    # --------------------------------------------------------
+    # 番茄钟
+    # --------------------------------------------------------
+    def _build_pomodoro_page(self, frame):
+        self._header(frame, tr("番茄钟"), tr("专注 25 分钟，休息 5 分钟，高效工作"))
+        wrap = tk.Frame(frame, bg=COLORS["bg"])
+        wrap.pack(fill="both", expand=True, padx=24, pady=(0, 20))
+
+        card, body = self._card(wrap, tr("计时模式"))
+        card.pack(fill="x")
+
+        self.pomodoro_mode = tk.StringVar(value="focus")
+        mode_row = tk.Frame(body, bg=COLORS["card"])
+        mode_row.pack(anchor="w", pady=(0, 8))
+        for val, text in (("focus", tr("专注 25 分钟")),
+                          ("short", tr("短休息 5 分钟")),
+                          ("long", tr("长休息 15 分钟"))):
+            ttk.Radiobutton(mode_row, text=text, variable=self.pomodoro_mode,
+                            value=val, command=self._pomodoro_reset).pack(side="left", padx=(0, 12))
+
+        self.pomodoro_total = 25 * 60
+        self.pomodoro_left = self.pomodoro_total
+        self.pomodoro_running = False
+        self.pomodoro_after = None
+
+        self.pomodoro_time = tk.Label(body, text="25:00", font=(FONT, 44, "bold"),
+                                      bg=COLORS["card"], fg=COLORS["primary"])
+        self.pomodoro_time.pack(anchor="w", pady=(8, 0))
+
+        btn_row = tk.Frame(body, bg=COLORS["card"])
+        btn_row.pack(anchor="w", pady=(6, 0))
+        self.pomodoro_btn = self._mk_btn(btn_row, tr("开 始"), self._pomodoro_toggle, "success")
+        self.pomodoro_btn.pack(side="left")
+        self._mk_btn(btn_row, tr("重 置"), self._pomodoro_reset, "warning").pack(side="left", padx=(8, 0))
+
+        self.pomodoro_status = tk.Label(body, text="", font=(FONT, 10),
+                                        bg=COLORS["card"], fg=COLORS["text_light"], anchor="w")
+        self.pomodoro_status.pack(fill="x", pady=(8, 0))
+
+    def _pomodoro_mins(self):
+        return {"focus": 25, "short": 5, "long": 15}[self.pomodoro_mode.get()]
+
+    def _pomodoro_display(self):
+        return f"{self.pomodoro_left // 60:02d}:{self.pomodoro_left % 60:02d}"
+
+    def _pomodoro_toggle(self):
+        if self.pomodoro_running:
+            self.pomodoro_running = False
+            if self.pomodoro_after:
+                self.after_cancel(self.pomodoro_after)
+                self.pomodoro_after = None
+            self.pomodoro_btn.config(text=tr("继 续"))
+            self.pomodoro_status.config(text=tr("已暂停"), fg=COLORS["warning"])
+        else:
+            self.pomodoro_running = True
+            self.pomodoro_btn.config(text=tr("暂 停"))
+            self.pomodoro_status.config(text=tr("计时中……"), fg=COLORS["success"])
+            self._pomodoro_tick()
+
+    def _pomodoro_tick(self):
+        if not self.pomodoro_running:
+            return
+        # 页面可能因切换语言被销毁
+        if not getattr(self, "pomodoro_time", None) or not self.pomodoro_time.winfo_exists():
+            return
+        self.pomodoro_left -= 1
+        if self.pomodoro_left <= 0:
+            self.pomodoro_left = 0
+            self.pomodoro_time.config(text=self._pomodoro_display())
+            self._pomodoro_finish()
+            return
+        self.pomodoro_time.config(text=self._pomodoro_display())
+        self.pomodoro_after = self.after(1000, self._pomodoro_tick)
+
+    def _pomodoro_finish(self):
+        self.pomodoro_running = False
+        self.pomodoro_after = None
+        self.pomodoro_btn.config(text=tr("开 始"))
+        if self.pomodoro_mode.get() == "focus":
+            self.pomodoro_status.config(text=tr("专注结束，休息一下吧！"), fg=COLORS["success"])
+            messagebox.showinfo(tr("番茄钟"), tr("专注结束，休息一下吧！"))
+        else:
+            self.pomodoro_status.config(text=tr("休息结束，开始专注吧！"), fg=COLORS["primary"])
+            messagebox.showinfo(tr("番茄钟"), tr("休息结束，开始专注吧！"))
+
+    def _pomodoro_reset(self):
+        self.pomodoro_running = False
+        if self.pomodoro_after:
+            self.after_cancel(self.pomodoro_after)
+            self.pomodoro_after = None
+        self.pomodoro_total = self._pomodoro_mins() * 60
+        self.pomodoro_left = self.pomodoro_total
+        self.pomodoro_time.config(text=self._pomodoro_display())
+        self.pomodoro_btn.config(text=tr("开 始"))
+        self.pomodoro_status.config(text="", fg=COLORS["text_light"])
 
     # --------------------------------------------------------
     # 进制转换

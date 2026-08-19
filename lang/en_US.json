@@ -386,5 +386,20 @@
   "运行测试（打开控制台窗口）": "Run Tests (Open Console Window)",
   "将在新控制台窗口运行对应测试，输出实时显示；测试结束后窗口保持打开，可随时关闭。": "The selected tests will run in a new console window with live output. The window stays open after finishing; close it anytime.",
   "启动控制台失败：{0}": "Failed to launch console: {0}",
-  "  Dev 开发者工具": "  Dev Tools"
+  "  Dev 开发者工具": "  Dev Tools",
+  "  番茄钟": "  Pomodoro",
+  "番茄钟": "Pomodoro",
+  "效率工具": "Productivity Tools",
+  "计时模式": "Timer Mode",
+  "专注 25 分钟，休息 5 分钟，高效工作": "Focus 25 min, rest 5 min, work efficiently",
+  "专注 25 分钟": "Focus 25 min",
+  "短休息 5 分钟": "Short break 5 min",
+  "长休息 15 分钟": "Long break 15 min",
+  "暂 停": "Pause",
+  "继 续": "Resume",
+  "重 置": "Reset",
+  "计时中……": "Counting...",
+  "已暂停": "Paused",
+  "专注结束，休息一下吧！": "Focus session done! Take a break.",
+  "休息结束，开始专注吧！": "Break over! Back to focus."
 }
