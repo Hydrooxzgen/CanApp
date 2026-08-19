@@ -5,8 +5,7 @@
 # Github: github.com/Hydrooxzgen
 # ------------------------------------------------------------
 """
-CanApp v1.0.0
-原版改为App_origin.py并不再更新
+CanApp v1.1.0
 """
 
 import hashlib
@@ -14,7 +13,6 @@ import json
 import os
 import random
 import shutil
-import socket
 import subprocess
 import sys
 import threading
@@ -45,7 +43,7 @@ _fix_tcl_library()
 
 import tkinter as tk
 from datetime import datetime
-from tkinter import filedialog, messagebox, scrolledtext, simpledialog, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 try:
     import requests
@@ -237,7 +235,7 @@ class LoginDialog(tk.Toplevel):
         self.grab_set()
         if not self.forced_dev:
             self.entry_user.focus_set()
-        self.bind("<Return>", lambda e: self.do_login())
+        self.bind("<Return>", lambda _: self.do_login())
 
     def _center(self, master):
         self.update_idletasks()
@@ -566,7 +564,7 @@ class App(tk.Tk):
             for pid, label in items:
                 self.nav.insert(gid, "end", iid=pid, text=label)
 
-    def _on_nav_select(self, _event):
+    def _on_nav_select(self, _):
         sel = self.nav.selection()
         if sel and sel[0] in self.page_builders:
             self.show_page(sel[0])
@@ -801,7 +799,6 @@ class App(tk.Tk):
         self._header(frame, tr("猜数字"), tr("输入范围开始游戏，看看你能用多少次猜中"))
         self.game["guess"] = {"target": None, "tries": 0, "min": None, "max": None,
                               "history": []}
-        g = self.game["guess"]
 
         wrap = tk.Frame(frame, bg=COLORS["bg"])
         wrap.pack(fill="both", expand=True, padx=24, pady=(0, 20))
@@ -828,7 +825,7 @@ class App(tk.Tk):
         self.guess_input = self._mk_entry(input_row, width=20)
         self.guess_input.pack(side="left", ipady=3)
         self._mk_btn(input_row, tr("猜"), self.guess_submit, "primary").pack(side="left", padx=(8, 0))
-        self.guess_input.bind("<Return>", lambda e: self.guess_submit())
+        self.guess_input.bind("<Return>", lambda _: self.guess_submit())
 
         self.guess_log = self._mk_text(right_body, height=16)
         self.guess_log.pack(fill="both", expand=True)
@@ -902,7 +899,6 @@ class App(tk.Tk):
     def _build_fist_page(self, frame):
         self._header(frame, tr("石头剪刀布"), tr("与计算机来一场经典对决"))
         self.game["fist"] = {"win": 0, "lose": 0, "tie": 0, "last": ""}
-        f = self.game["fist"]
 
         wrap = tk.Frame(frame, bg=COLORS["bg"])
         wrap.pack(fill="both", expand=True, padx=24, pady=(0, 20))
@@ -1137,7 +1133,7 @@ class App(tk.Tk):
         self.avg_input = self._mk_entry(input_row, width=14)
         self.avg_input.pack(side="left", ipady=3)
         self._mk_btn(input_row, tr("添加"), self.avg_add, "primary").pack(side="left", padx=(8, 0))
-        self.avg_input.bind("<Return>", lambda e: self.avg_add())
+        self.avg_input.bind("<Return>", lambda _: self.avg_add())
 
         self.avg_list = tk.Listbox(left_body, height=12, font=(FONT, 11),
                                    bg="white", fg=COLORS["text"],
@@ -1293,7 +1289,7 @@ class App(tk.Tk):
         self.collatz_input = self._mk_entry(row, width=16)
         self.collatz_input.pack(side="left", ipady=3)
         self._mk_btn(row, tr("开 始"), self.collatz_run, "primary").pack(side="left", padx=(8, 0))
-        self.collatz_input.bind("<Return>", lambda e: self.collatz_run())
+        self.collatz_input.bind("<Return>", lambda _: self.collatz_run())
 
         log, log_body = self._card(wrap, tr("输出"))
         log.pack(fill="both", expand=True, pady=(14, 0))
@@ -1404,7 +1400,7 @@ class App(tk.Tk):
         self.money_input = self._mk_entry(row, width=14)
         self.money_input.pack(side="left", ipady=3)
         self._mk_btn(row, tr("计 算"), self.money_calc, "primary").pack(side="left", padx=(8, 0))
-        self.money_input.bind("<Return>", lambda e: self.money_calc())
+        self.money_input.bind("<Return>", lambda _: self.money_calc())
         self.money_result = tk.Label(body, text="", font=(FONT, 13, "bold"),
                                      bg=COLORS["card"], fg=COLORS["primary"])
         self.money_result.pack(anchor="w", pady=(12, 0))
@@ -1523,7 +1519,7 @@ class App(tk.Tk):
         self.ping_input = self._mk_entry(row, width=28)
         self.ping_input.pack(side="left", ipady=3)
         self._mk_btn(row, "Ping", self.ping_do, "primary").pack(side="left", padx=(8, 0))
-        self.ping_input.bind("<Return>", lambda e: self.ping_do())
+        self.ping_input.bind("<Return>", lambda _: self.ping_do())
 
         log, log_body = self._card(wrap, tr("输出"))
         log.pack(fill="both", expand=True, pady=(14, 0))
@@ -1577,7 +1573,7 @@ class App(tk.Tk):
         self.morse_input = self._mk_entry(row, width=28)
         self.morse_input.pack(side="left", ipady=3)
         self._mk_btn(row, tr("转 换"), self.morse_do, "primary").pack(side="left", padx=(8, 0))
-        self.morse_input.bind("<Return>", lambda e: self.morse_do())
+        self.morse_input.bind("<Return>", lambda _: self.morse_do())
 
         self.morse_result = tk.Label(body, text="", font=(MONO, 13, "bold"),
                                      bg=COLORS["card"], fg=COLORS["primary"], wraplength=700,
@@ -1616,7 +1612,7 @@ class App(tk.Tk):
         self.talk_input = self._mk_entry(row, width=40)
         self.talk_input.pack(side="left", ipady=3)
         self._mk_btn(row, tr("发送"), self.talk_send, "primary").pack(side="left", padx=(8, 0))
-        self.talk_input.bind("<Return>", lambda e: self.talk_send())
+        self.talk_input.bind("<Return>", lambda _: self.talk_send())
 
     def talk_send(self):
         line = self.talk_input.get()

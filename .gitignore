@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+.idea/
 
 # 用户数据（含密码文件、游戏记录等，不上传）
 UserFiles/*
